@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>고양이 통합 마취 및 교육 대시보드 v5.0 - 금호동물병원</title>
+    <title>고양이 통합 마취 및 교육 대시보드 v5.1 - 금호동물병원</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -37,7 +37,7 @@
 
     <div class="max-w-7xl mx-auto">
         <header class="text-center mb-6 no-print">
-            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">고양이 통합 마취 및 교육 대시보드 v5.0</h1>
+            <h1 class="text-3xl md:text-4xl font-bold text-gray-800">고양이 통합 마취 및 교육 대시보드 v5.1</h1>
             <p class="mt-2 text-lg text-gray-600">금호동물병원 실전 워크플로우 (Anes AI & Guardian EDU)</p>
         </header>
 
@@ -49,11 +49,11 @@
                 </div>
                 <div>
                     <label for="weight" class="block text-center text-xl font-semibold text-gray-700 mb-2">환자 체중 (kg)</label>
-                    <input type="number" id="weight" placeholder="체중 입력" class="input-field" oninput="calculateAll()">
+                    <input type="number" id="weight" placeholder="체중 입력" class="input-field">
                 </div>
                 <div>
                     <label for="patient_status" class="block text-center text-xl font-semibold text-gray-700 mb-2">환자 상태</label>
-                    <select id="patient_status" class="w-full p-4 text-center text-lg select-field" onchange="calculateAll()">
+                    <select id="patient_status" class="w-full p-4 text-center text-lg select-field">
                         <option value="healthy" selected>건강한 환자</option>
                         <option value="cardiac">심장 질환 의심</option>
                     </select>
