@@ -11,7 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
     initializeAll();
 
     function initializeAll() {
-        // 이벤트 리스너 바인딩
+        // 전역 리스너
         document.getElementById('globalPetName').addEventListener('input', updateAllTitles);
         document.getElementById('weight').addEventListener('input', calculateAll);
         document.getElementById('patient_status').addEventListener('change', calculateAll);
@@ -19,17 +19,17 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('chill_protocol').addEventListener('change', calculateAll);
         document.getElementById('saveTabBtn').addEventListener('click', saveActiveTabAsImage);
         
-        // ET Tube 탭
+        // ET Tube 탭 리스너
         document.getElementById('weight-input').addEventListener('input', calculateWeightSize);
         document.getElementById('calculate-trachea-btn').addEventListener('click', calculateTracheaSize);
         document.getElementById('trachea-input').addEventListener('keydown', (event) => { if (event.key === 'Enter') calculateTracheaSize(); });
         document.getElementById('saveCatEtTubeSelection').addEventListener('click', saveCatEtTubeSelection);
         
-        // 사이클로스포린 탭
+        // 사이클로스포린 탭 리스너
         document.getElementById('petWeightCyclo').addEventListener('input', calculateCycloDose);
         document.getElementById('durationCyclo').addEventListener('input', calculateCycloDose);
 
-        // 노스판 탭
+        // 노스판 탭 리스너
         const attachDateEl = document.getElementById('attachDate');
         const attachTimeEl = document.getElementById('attachTime');
         if(attachDateEl && attachTimeEl){
@@ -41,6 +41,13 @@ document.addEventListener('DOMContentLoaded', function () {
             attachTimeEl.addEventListener('change', calculateRemovalDate);
             calculateRemovalDate();
         }
+        
+        // 저혈압 응급 탭 리스너
+        document.getElementById('norepi_weight').addEventListener('input', calculateHypotensionCRI);
+        document.getElementById('norepi_dose').addEventListener('input', calculateHypotensionCRI);
+
+        // 심정지 응급 탭 리스너
+        document.getElementById('cpa_weight').addEventListener('input', calculateCpaDrugs);
 
         // 구내염 탭 차트 생성
         createStomatitisChart();
@@ -138,22 +145,22 @@ document.addEventListener('DOMContentLoaded', function () {
         const weightInput = document.getElementById('weight');
         const weight = parseFloat(weightInput.value);
         
-        // 체중이 입력되지 않으면 일부 기능 비활성화
         if (!weightInput.value || isNaN(weight) || weight <= 0) {
-             const weightInputTube = document.getElementById('weight-input');
+            const weightInputTube = document.getElementById('weight-input');
             if (weightInputTube) {
                 weightInputTube.value = '';
                 calculateWeightSize();
             }
-            // 입력값이 없을 때 계산결과 초기화
             document.getElementById('pre_op_drugs_result_cat').innerHTML = '체중을 입력해주세요.';
             document.getElementById('nerve_block_result_cat').innerHTML = '체중을 입력해주세요.';
             document.getElementById('ketamine_cri_result_cat').innerHTML = '체중을 입력해주세요.';
-            document.getElementById('hypotension_protocol_cat').innerHTML = '체중을 입력해주세요.';
-            document.getElementById('bradycardia_protocol_cat').innerHTML = '';
-            document.getElementById('cpa_protocol_cat').innerHTML = '체중을 입력해주세요.';
             document.getElementById('discharge_cat').innerHTML = '체중을 입력해주세요.';
             document.getElementById('petWeightCyclo').value = '';
+            
+            document.getElementById('norepi_weight').value = '';
+            document.getElementById('cpa_weight').value = '';
+            calculateHypotensionCRI();
+            calculateCpaDrugs();
             calculateCycloDose();
             return;
         }
@@ -169,10 +176,21 @@ document.addEventListener('DOMContentLoaded', function () {
             cycloWeightInput.value = weight;
             calculateCycloDose();
         }
+
+        const norepiWeightInput = document.getElementById('norepi_weight');
+        if(norepiWeightInput) {
+            norepiWeightInput.value = weight;
+        }
+
+        const cpaWeightInput = document.getElementById('cpa_weight');
+        if(cpaWeightInput) {
+            cpaWeightInput.value = weight;
+        }
         
         populatePrepTab(weight);
-        populateEmergencyTab(weight);
         populateDischargeTab(weight);
+        calculateHypotensionCRI();
+        calculateCpaDrugs();
     }
 
     function populatePrepTab(weight) {
@@ -181,29 +199,59 @@ document.addEventListener('DOMContentLoaded', function () {
         const premedFactor = isChill ? 0.5 : 1.0;
         const inductionFactor = isChill ? 0.5 : 1.0;
 
+        // 마취 전 투약
         const butorMl = (0.2 * weight * premedFactor) / concentrations_cat.butorphanol;
         const midaMl = (0.2 * weight * premedFactor) / concentrations_cat.midazolam;
+        
+        // 케타민 부하
         const ketaLoadMl = (0.5 * weight) / concentrations_cat.ketamine_diluted;
-        const alfaxanMlMin = (1 * weight * inductionFactor) / concentrations_cat.alfaxalone;
-        const alfaxanMlMax = (2 * weight * inductionFactor) / concentrations_cat.alfaxalone;
+
+        // --- 마취 유도제 (수정됨) ---
+        const alfaxanMgMin = 2 * weight * inductionFactor;
+        const alfaxanMgMax = 3 * weight * inductionFactor;
+        const alfaxanMlMin = alfaxanMgMin / concentrations_cat.alfaxalone;
+        const alfaxanMlMax = alfaxanMgMax / concentrations_cat.alfaxalone;
+        
+        const propofolMgMin = 4 * weight * inductionFactor;
+        const propofolMgMax = 6 * weight * inductionFactor;
+        const propofolMlMin = propofolMgMin / concentrations_cat.propofol;
+        const propofolMlMax = propofolMgMax / concentrations_cat.propofol;
+
+        let inductionHtml = '';
+        const alfaxanDoseStr = `<span class="result-value">${alfaxanMlMin.toFixed(2)}~${alfaxanMlMax.toFixed(2)} mL</span> (${alfaxanMgMin.toFixed(1)}~${alfaxanMgMax.toFixed(1)} mg)`;
+        const propofolDoseStr = `<span class="result-value">${propofolMlMin.toFixed(2)}~${propofolMlMax.toFixed(2)} mL</span> (${propofolMgMin.toFixed(1)}~${propofolMgMax.toFixed(1)} mg)`;
+        
+        if (status === 'cardiac') {
+            inductionHtml = `<p>알팍산: ${alfaxanDoseStr} <span class="text-red-600 font-bold">- 추천</span></p><p class="mt-1">프로포폴: ${propofolDoseStr}</p>`;
+        } else {
+            inductionHtml = `<p>알팍산: ${alfaxanDoseStr}</p><p class="mt-1">프로포폴: ${propofolDoseStr}</p>`;
+        }
+        
+        const inductionCardHtml = `<div class="p-3 bg-indigo-50 rounded-lg"><h4 class="font-bold text-indigo-800">마취 유도제</h4>${inductionHtml}${isChill ? '<p class="text-xs text-red-600 font-bold mt-1">※ Chill 50% 감량</p>' : ''}</div>`;
+        // --- 마취 유도제 끝 ---
+
+        // 수액
         const pumpCorrectionFactor = 0.7;
         const fluidRate = status === 'healthy' ? 3 : 1.5;
         const fluidTarget = fluidRate * weight;
         const fluidCorrected = fluidTarget / pumpCorrectionFactor;
         
+        // 노스판 패치
         let patchRecommendation = "";
         if (weight <= 3.0) { patchRecommendation = "5 mcg/h 1매"; } 
         else if (weight <= 6.0) { patchRecommendation = "10 mcg/h 1매"; } 
         else { patchRecommendation = "20 mcg/h 1매"; }
 
+        // 응급 약물
         const norepiRate = (((weight * 0.1 * 60) / 1000) / (0.3 * 1 / 30));
         const epiLowMl = (0.01 * weight) / (concentrations_cat.epinephrine / 10);
         const atropineCpaMl = (0.04 * weight) / concentrations_cat.atropine;
 
+        // 최종 HTML 조합
         document.getElementById('pre_op_drugs_result_cat').innerHTML = `
             <div class="p-3 bg-blue-50 rounded-lg"><h4 class="font-bold text-blue-800">마취 전 투약</h4><p><span class="result-value">${butorMl.toFixed(2)} mL</span> 부토르파놀</p><p><span class="result-value">${midaMl.toFixed(2)} mL</span> 미다졸람</p>${isChill ? '<p class="text-xs text-red-600 font-bold mt-1">※ Chill 50% 감량</p>' : ''}</div>
             <div class="p-3 bg-amber-50 rounded-lg"><h4 class="font-bold text-amber-800">케타민 부하</h4><p><span class="result-value">${ketaLoadMl.toFixed(2)} mL</span> (희석액)</p><p class="text-xs text-gray-600 font-semibold mt-1">※ 희석: 케타민 0.1mL + N/S 0.9mL</p></div>
-            <div class="p-3 bg-indigo-50 rounded-lg"><h4 class="font-bold text-indigo-800">마취 유도제</h4><p><span class="result-value">${alfaxanMlMin.toFixed(2)}~${alfaxanMlMax.toFixed(2)} mL</span> 알팍산</p>${isChill ? '<p class="text-xs text-red-600 font-bold mt-1">※ Chill 50% 감량</p>' : ''}</div>
+            ${inductionCardHtml}
             <div class="p-3 bg-cyan-50 rounded-lg"><h4 class="font-bold text-cyan-800">수액 펌프</h4><p><span class="result-value">${fluidCorrected.toFixed(1)} mL/hr</span></p><p class="text-xs text-gray-500 mt-1">(목표: ${fluidTarget.toFixed(1)}mL/hr)</p></div>
             <div class="p-3 bg-fuchsia-50 rounded-lg"><h4 class="font-bold text-fuchsia-800">노스판 패치</h4><p class="result-value">${patchRecommendation}</p></div>
             <div class="p-3 bg-red-50 rounded-lg col-span-full md:col-span-1"><h4 class="font-bold text-red-800">응급 약물 준비</h4>
@@ -233,15 +281,62 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('workflow_steps_cat').innerHTML = `<div class="step-card p-4"><h3 class="font-bold text-lg text-indigo-800">Step 1: 내원 및 안정화</h3><p class="text-sm text-gray-700">IV 장착 후, 수액을 연결하고 입원장 내에서 산소를 공급하며 환자를 안정시킵니다. 필요 시 노스판 패치를 미리 부착합니다.</p></div><div class="step-card p-4"><h3 class="font-bold text-lg text-indigo-800">Step 2: 마취 전 투약</h3><p class="text-sm text-gray-700">산소를 공급하며, 준비된 부토르파놀+미다졸람을 2분에 걸쳐 천천히 IV합니다.</p></div><div class="warning-card p-4"><h3 class="font-bold text-lg text-orange-800">Step 3: 마취 유도 및 케타민 로딩</h3><p class="text-sm text-gray-700">준비된 유도제를 효과를 봐가며 주사하여 삽관 후, 케타민 부하 용량을 1분에 걸쳐 천천히 IV합니다.</p></div><div class="step-card p-4"><h3 class="font-bold text-lg text-indigo-800">Step 4: 마취 유지</h3><p class="text-sm text-gray-700">호흡마취 및 케타민 CRI 펌프를 작동시키고, 모든 발치/수술 부위에 국소마취를 적용합니다.</p></div>`;
     }
     
-    function populateEmergencyTab(weight) {
-        const norepiDose = 0.1;
-        const norepiRate = (((weight * norepiDose * 60) / 1000) / (0.3 * 1 / 30));
-        document.getElementById('hypotension_protocol_cat').innerHTML = `<h4 class="font-bold text-lg text-red-800">저혈압 (SBP < 90)</h4><ol class="list-decimal list-inside mt-2 space-y-2 text-sm"><li>호흡 마취제 농도 감소</li><li><span class="text-red-600 font-bold">수액 볼루스 절대 금기!</span> 승압제 사용.</li></ol><div class="mt-2 p-2 rounded-lg bg-red-100"><h5 class="font-semibold text-center text-sm">노르에피네프린 CRI (1차)</h5><p class="text-xs text-center mb-1">희석: 원액 0.3mL + N/S 29.7mL</p><p class="text-center font-bold text-red-700 text-lg">${norepiRate.toFixed(2)} mL/hr <span class="text-sm font-normal">(0.1 mcg/kg/min)</span></p></div>`;
-        document.getElementById('bradycardia_protocol_cat').innerHTML = `<h4 class="font-bold text-lg text-red-800 mt-4">서맥 (Bradycardia)</h4><div class="mt-2 p-2 rounded-lg bg-red-100"><p class="text-center text-red-700 font-bold">아트로핀 금기 (HCM 의심)</p><p class="text-center text-xs text-gray-600">마취 심도 조절 및 원인 교정 우선</p></div>`;
-        const epiLowMl = (0.01 * weight) / (concentrations_cat.epinephrine / 10);
-        const vasoMl = (0.8 * weight) / concentrations_cat.vasopressin;
-        const atropineCpaMl = (0.04 * weight) / concentrations_cat.atropine;
-        document.getElementById('cpa_protocol_cat').innerHTML = `<div class="info-box mb-2 text-xs"><p><strong>핵심 개념:</strong> BLS는 '엔진'을 계속 돌려주는 역할이고, ALS는 '엔진을 수리'하는 역할입니다. 고품질의 BLS 없이는 ALS가 성공할 수 없습니다.</p></div><h4 class="font-bold text-md text-gray-800 mt-3">1. BLS (기본소생술)</h4><ul class="list-disc list-inside text-sm space-y-1 mt-1"><li><strong>순환:</strong> 분당 100-120회 속도로 흉곽 1/3 깊이 압박 (2분마다 교대)</li><li><strong>기도확보:</strong> 즉시 기관 삽관</li><li><strong>호흡:</strong> 6초에 1회 인공 환기 (과환기 금지)</li></ul><h4 class="font-bold text-md text-gray-800 mt-3">2. ALS (전문소생술)</h4><div class="mt-2 p-2 rounded-lg bg-red-100 space-y-2"><h5 class="font-semibold text-sm">에피네프린 (Low dose)</h5><p class="text-xs text-center mb-1 font-semibold">희석: 원액 0.1mL + N/S 0.9mL</p><p class="text-center font-bold text-red-700">${epiLowMl.toFixed(2)} mL (희석액) IV</p><hr><h5 class="font-semibold text-sm">바소프레신 (대체 가능)</h5><p class="text-center font-bold text-red-700">${vasoMl.toFixed(2)} mL IV</p><hr><h5 class="font-semibold text-sm">아트로핀 (Vagal arrest 의심 시)</h5><p class="text-center font-bold text-red-700">${atropineCpaMl.toFixed(2)} mL IV</p></div>`;
+    // --- 새 응급 탭 계산 함수 ---
+    function calculateHypotensionCRI() {
+        const weightInput = document.getElementById('norepi_weight');
+        const doseInput = document.getElementById('norepi_dose');
+        const resultEl = document.getElementById('norepi_result');
+        
+        const weight = parseFloat(weightInput.value);
+        const dose = parseFloat(doseInput.value);
+
+        if (isNaN(weight) || weight <= 0 || isNaN(dose) || dose < 0) {
+            resultEl.textContent = '0.00';
+            return;
+        }
+
+        const drugConcentrationMgPerMl = 1; 
+        const drugVolumeInSyringeMl = 0.3;
+        const syringeTotalVolumeMl = 30;
+        
+        const totalDrugInSyringeMg = drugVolumeInSyringeMl * drugConcentrationMgPerMl;
+        const dilutedConcentrationMgPerMl = totalDrugInSyringeMg / syringeTotalVolumeMl;
+
+        const requiredDrugMgPerHr = (weight * dose * 60) / 1000;
+        const infusionRateMlPerHr = requiredDrugMgPerHr / dilutedConcentrationMgPerMl;
+        
+        resultEl.textContent = infusionRateMlPerHr.toFixed(2);
+    }
+
+    function calculateCpaDrugs() {
+        const weightInput = document.getElementById('cpa_weight');
+        const epinephrineResult = document.getElementById('epinephrine-result');
+        const vasopressinResult = document.getElementById('vasopressin-result');
+        const atropineResult = document.getElementById('atropine-result');
+
+        const drugs = {
+            epinephrine: { dose: 0.01, concentration: 0.1 },
+            vasopressin: { dose: 0.8, concentration: 20 },
+            atropine: { dose: 0.04, concentration: 0.5 }
+        };
+
+        const weight = parseFloat(weightInput.value);
+
+        if (isNaN(weight) || weight <= 0) {
+            epinephrineResult.textContent = '0.00 mL';
+            vasopressinResult.textContent = '0.00 mL';
+            atropineResult.textContent = '0.00 mL';
+            return;
+        }
+
+        const epiVolume = (drugs.epinephrine.dose * weight) / drugs.epinephrine.concentration;
+        epinephrineResult.textContent = `${epiVolume.toFixed(3)} mL`;
+
+        const vasoVolume = (drugs.vasopressin.dose * weight) / drugs.vasopressin.concentration;
+        vasopressinResult.textContent = `${vasoVolume.toFixed(3)} mL`;
+
+        const atroVolume = (drugs.atropine.dose * weight) / drugs.atropine.concentration;
+        atropineResult.textContent = `${atroVolume.toFixed(3)} mL`;
     }
 
     function populateDischargeTab(weight) {
@@ -377,4 +472,4 @@ document.addEventListener('DOMContentLoaded', function () {
             displayDiv.innerHTML = '<p class="text-gray-700">ET Tube가 아직 선택되지 않았습니다. \'ET Tube\' 탭에서 기록해주세요.</p>';
         }
     }
-});```
+});
