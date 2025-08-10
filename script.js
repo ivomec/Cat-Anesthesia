@@ -296,10 +296,16 @@ function saveActiveTabAsImage() {
     const petName = document.getElementById('globalPetName').value.trim() || '환자';
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
+
+    // *** MODIFICATION START ***
+    // Removed windowWidth and windowHeight to let html2canvas auto-detect the size.
+    // This generally produces better results for scrollable content.
     html2canvas(activeTab, {
-        scale: 2, useCORS: true, backgroundColor: '#ffffff',
-        windowWidth: activeTab.scrollWidth, windowHeight: activeTab.scrollHeight
+        scale: 2, // Use scale 2 for better resolution
+        useCORS: true,
+        backgroundColor: '#ffffff'
     }).then(canvas => {
+    // *** MODIFICATION END ***
         const image = canvas.toDataURL('image/png');
         const link = document.createElement('a');
         link.href = image;
@@ -638,4 +644,4 @@ function calculateAggCatIM(weight) {
     resultTbody.innerHTML = html;
 }
 
-document.addEventListener('DOMContentLoaded', initializeAll);```
+document.addEventListener('DOMContentLoaded', initializeAll);
