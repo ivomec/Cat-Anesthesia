@@ -289,7 +289,7 @@ function handleFileLoad(event) {
     reader.readAsText(file);
     event.target.value = '';
 }
-    
+
 function saveActiveTabAsImage() {
     const activeTab = document.querySelector('.tab-content.active');
     if (!activeTab) {
@@ -301,18 +301,15 @@ function saveActiveTabAsImage() {
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
-    // html2canvas가 렌더링할 가상 윈도우의 크기를 
-    // 캡처 대상 요소의 전체 스크롤 가능 크기로 명시적으로 지정합니다.
-    // 이는 캡처가 뷰포트 크기로 잘리는 것을 방지하는 가장 확실한 방법 중 하나입니다.
     const options = {
-        scale: 2,
+        // scale 값을 3으로 상향 조정하여 렌더링 해상도를 높입니다.
+        scale: 3,
         useCORS: true,
         backgroundColor: '#ffffff',
-        // 렌더링할 '창'의 너비를 요소의 전체 너비로 설정
+        // 렌더링할 가상 윈도우의 크기를 요소의 전체 스크롤 가능 크기로 지정합니다.
         windowWidth: activeTab.scrollWidth,
-        // 렌더링할 '창'의 높이를 요소의 전체 높이로 설정
         windowHeight: activeTab.scrollHeight,
-        // 페이지가 스크롤된 경우를 대비해 캡처 시작점을 보정
+        // 페이지가 스크롤된 경우를 대비해 캡처 시작점을 보정합니다.
         scrollX: -window.scrollX,
         scrollY: -window.scrollY
     };
