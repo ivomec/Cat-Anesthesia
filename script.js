@@ -296,23 +296,29 @@ function saveActiveTabAsImage() {
         alert('이미지로 저장할 활성화된 탭을 찾을 수 없습니다.');
         return;
     }
+
     const petName = document.getElementById('globalPetName').value.trim() || '환자';
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
-    // 고품질 이미지 저장을 위한 html2canvas 옵션 설정
-    html2canvas(activeTab, {
-        // scale을 2로 설정하여 기본 해상도의 2배로 렌더링합니다.
-        scale: 2, 
+    // html2canvas가 렌더링할 가상 윈도우의 크기를 
+    // 캡처 대상 요소의 전체 스크롤 가능 크기로 명시적으로 지정합니다.
+    // 이는 캡처가 뷰포트 크기로 잘리는 것을 방지하는 가장 확실한 방법 중 하나입니다.
+    const options = {
+        scale: 2,
         useCORS: true,
         backgroundColor: '#ffffff',
-        
-        // 탭 콘텐츠의 실제 전체 너비와 높이를 지정하여
-        // 스크롤 영역까지 모두 포함해 캡처하도록 합니다.
-        width: activeTab.scrollWidth,
-        height: activeTab.scrollHeight
-    }).then(canvas => {
-        const image = canvas.toDataURL('image/png', 1.0); // 품질을 최대로 설정
+        // 렌더링할 '창'의 너비를 요소의 전체 너비로 설정
+        windowWidth: activeTab.scrollWidth,
+        // 렌더링할 '창'의 높이를 요소의 전체 높이로 설정
+        windowHeight: activeTab.scrollHeight,
+        // 페이지가 스크롤된 경우를 대비해 캡처 시작점을 보정
+        scrollX: -window.scrollX,
+        scrollY: -window.scrollY
+    };
+
+    html2canvas(activeTab, options).then(canvas => {
+        const image = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
         link.href = image;
         link.download = fileName;
