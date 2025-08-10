@@ -292,27 +292,36 @@ function handleFileLoad(event) {
     
 function saveActiveTabAsImage() {
     const activeTab = document.querySelector('.tab-content.active');
-    if (!activeTab) return;
+    if (!activeTab) {
+        alert('이미지로 저장할 활성화된 탭을 찾을 수 없습니다.');
+        return;
+    }
     const petName = document.getElementById('globalPetName').value.trim() || '환자';
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
-    // *** MODIFICATION START ***
-    // Removed windowWidth and windowHeight to let html2canvas auto-detect the size.
-    // This generally produces better results for scrollable content.
+    // 고품질 이미지 저장을 위한 html2canvas 옵션 설정
     html2canvas(activeTab, {
-        scale: 2, // Use scale 2 for better resolution
+        // scale을 2로 설정하여 기본 해상도의 2배로 렌더링합니다.
+        scale: 2, 
         useCORS: true,
-        backgroundColor: '#ffffff'
+        backgroundColor: '#ffffff',
+        
+        // 탭 콘텐츠의 실제 전체 너비와 높이를 지정하여
+        // 스크롤 영역까지 모두 포함해 캡처하도록 합니다.
+        width: activeTab.scrollWidth,
+        height: activeTab.scrollHeight
     }).then(canvas => {
-    // *** MODIFICATION END ***
-        const image = canvas.toDataURL('image/png');
+        const image = canvas.toDataURL('image/png', 1.0); // 품질을 최대로 설정
         const link = document.createElement('a');
         link.href = image;
         link.download = fileName;
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    }).catch(error => {
+        console.error('이미지 저장 중 오류 발생:', error);
+        alert('이미지를 저장하는 중 오류가 발생했습니다. 콘솔 로그를 확인해주세요.');
     });
 }
     
