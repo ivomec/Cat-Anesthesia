@@ -638,4 +638,4 @@ function calculateAggCatIM(weight) {
     resultTbody.innerHTML = html;
 }
 
-document.addEventListener('DOMContentLoaded', initializeAll);
+document.addEventListener('DOMContentLoaded', initializeAll);```
