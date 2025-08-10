@@ -289,29 +289,22 @@ function handleFileLoad(event) {
     reader.readAsText(file);
     event.target.value = '';
 }
-
+    
 function saveActiveTabAsImage() {
     const activeTab = document.querySelector('.tab-content.active');
     if (!activeTab) {
         alert('이미지로 저장할 활성화된 탭을 찾을 수 없습니다.');
         return;
     }
-
     const petName = document.getElementById('globalPetName').value.trim() || '환자';
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
+    // 성공 사례(강아지 대시보드)에서 검증된, 가장 단순하고 효과적인 옵션 사용
     const options = {
-        // scale 값을 3으로 상향 조정하여 렌더링 해상도를 높입니다.
-        scale: 3,
+        scale: 3, // 고해상도 렌더링을 위한 핵심 옵션
         useCORS: true,
-        backgroundColor: '#ffffff',
-        // 렌더링할 가상 윈도우의 크기를 요소의 전체 스크롤 가능 크기로 지정합니다.
-        windowWidth: activeTab.scrollWidth,
-        windowHeight: activeTab.scrollHeight,
-        // 페이지가 스크롤된 경우를 대비해 캡처 시작점을 보정합니다.
-        scrollX: -window.scrollX,
-        scrollY: -window.scrollY
+        backgroundColor: '#f0f4f8' // 배경색을 지정하여 투명 영역 방지
     };
 
     html2canvas(activeTab, options).then(canvas => {
