@@ -300,14 +300,26 @@ function saveActiveTabAsImage() {
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
-    // 성공 사례(강아지 대시보드)에서 검증된, 가장 단순하고 효과적인 옵션 사용
+    // 캡처 전, 렌더링을 방해할 수 있는 CSS transform 속성을 일시적으로 비활성화합니다.
+    const style = document.createElement('style');
+    document.head.appendChild(style);
+    style.sheet.insertRule(
+        '.html2canvas-capture, .html2canvas-capture * { transform: none !important; -webkit-transform: none !important; }'
+    );
+    document.body.classList.add('html2canvas-capture');
+
     const options = {
-        scale: 3, // 고해상도 렌더링을 위한 핵심 옵션
+        scale: 3, // 선명도를 위한 높은 배율 설정
         useCORS: true,
-        backgroundColor: '#f0f4f8' // 배경색을 지정하여 투명 영역 방지
+        backgroundColor: '#ffffff', // 배경색을 명시하여 투명 문제 방지
+        letterRendering: true, // 폰트 렌더링 품질 향상 시도
     };
 
     html2canvas(activeTab, options).then(canvas => {
+        // 캡처가 끝나면 일시적으로 추가했던 스타일과 클래스를 반드시 제거합니다.
+        document.body.classList.remove('html2canvas-capture');
+        document.head.removeChild(style);
+
         const image = canvas.toDataURL('image/png', 1.0);
         const link = document.createElement('a');
         link.href = image;
@@ -316,6 +328,10 @@ function saveActiveTabAsImage() {
         link.click();
         document.body.removeChild(link);
     }).catch(error => {
+        // 오류가 발생하더라도 스타일은 반드시 원래대로 복구합니다.
+        document.body.classList.remove('html2canvas-capture');
+        document.head.removeChild(style);
+
         console.error('이미지 저장 중 오류 발생:', error);
         alert('이미지를 저장하는 중 오류가 발생했습니다. 콘솔 로그를 확인해주세요.');
     });
