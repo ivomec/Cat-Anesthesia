@@ -304,7 +304,7 @@ function saveActiveTabAsImage() {
     const style = document.createElement('style');
     document.head.appendChild(style);
     style.sheet.insertRule(
-        '.html2canvas-capture, .html2canvas-capture * { transform: none !important; -webkit-transform: none !important; }'
+        'body.html2canvas-capture .action-button, body.html2canvas-capture .protocol-card { transform: none !important; -webkit-transform: none !important; box-shadow: none !important; }'
     );
     document.body.classList.add('html2canvas-capture');
 
@@ -330,7 +330,9 @@ function saveActiveTabAsImage() {
     }).catch(error => {
         // 오류가 발생하더라도 스타일은 반드시 원래대로 복구합니다.
         document.body.classList.remove('html2canvas-capture');
-        document.head.removeChild(style);
+        if(style.parentNode) {
+            document.head.removeChild(style);
+        }
 
         console.error('이미지 저장 중 오류 발생:', error);
         alert('이미지를 저장하는 중 오류가 발생했습니다. 콘솔 로그를 확인해주세요.');
