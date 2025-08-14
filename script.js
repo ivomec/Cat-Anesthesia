@@ -300,7 +300,6 @@ function saveActiveTabAsImage() {
     const tabId = activeTab.id || 'current_tab';
     const fileName = `${petName}_${tabId}_이미지.png`;
 
-    // 캡처 전, 렌더링을 방해할 수 있는 CSS transform 속성을 일시적으로 비활성화합니다.
     const style = document.createElement('style');
     document.head.appendChild(style);
     style.sheet.insertRule(
@@ -309,14 +308,13 @@ function saveActiveTabAsImage() {
     document.body.classList.add('html2canvas-capture');
 
     const options = {
-        scale: 3, // 선명도를 위한 높은 배율 설정
+        scale: 3, 
         useCORS: true,
-        backgroundColor: '#ffffff', // 배경색을 명시하여 투명 문제 방지
-        letterRendering: true, // 폰트 렌더링 품질 향상 시도
+        backgroundColor: '#ffffff',
+        letterRendering: true,
     };
 
     html2canvas(activeTab, options).then(canvas => {
-        // 캡처가 끝나면 일시적으로 추가했던 스타일과 클래스를 반드시 제거합니다.
         document.body.classList.remove('html2canvas-capture');
         document.head.removeChild(style);
 
@@ -328,7 +326,6 @@ function saveActiveTabAsImage() {
         link.click();
         document.body.removeChild(link);
     }).catch(error => {
-        // 오류가 발생하더라도 스타일은 반드시 원래대로 복구합니다.
         document.body.classList.remove('html2canvas-capture');
         if(style.parentNode) {
             document.head.removeChild(style);
@@ -377,7 +374,12 @@ function populatePrepTab(weight, isCardiac, isKidney, isLiver, isChill) {
 
     const butorMl = (0.2 * weight * premedFactor) / concentrations_cat.butorphanol;
     const midaMl = (0.2 * weight * premedFactor) / concentrations_cat.midazolam;
-    const ketaLoadMl = (0.5 * weight) / concentrations_cat.ketamine_diluted;
+    
+    // --- START: 요청에 따라 수정된 부분 ---
+    // 케타민 부하 용량을 0.5mg/kg에서 0.25mg/kg으로 50% 감량
+    const ketaLoadMl = (0.25 * weight) / concentrations_cat.ketamine_diluted; 
+    // --- END: 수정된 부분 ---
+    
     const alfaxanMlMin = (1 * weight * inductionFactor) / concentrations_cat.alfaxalone;
     const alfaxanMlMax = (2 * weight * inductionFactor) / concentrations_cat.alfaxalone;
     const propofolMlMin = (2 * weight * inductionFactor) / concentrations_cat.propofol;
@@ -439,13 +441,11 @@ function initializeDischargeTab() {
         input.addEventListener('change', calculateDischargeMeds);
     });
 
-    // 기본 처방 설정 (v4.2에서 가져온 로직)
     const defaultMeds = {
         '7day': ['clindamycin', 'gabapentin', 'famotidine', 'almagel'],
         '3day': ['vetrocam', 'misoprostol', 'tramadol']
     };
 
-    // 7일짜리 기본 처방 선택
     defaultMeds['7day'].forEach(drugName => {
         const row = document.querySelector(`#dischargeTab tr[data-drug="${drugName}"]`);
         if (row) {
@@ -454,7 +454,6 @@ function initializeDischargeTab() {
         }
     });
 
-    // 3일짜리 기본 처방 선택
     defaultMeds['3day'].forEach(drugName => {
         const row = document.querySelector(`#dischargeTab tr[data-drug="${drugName}"]`);
         if (row) {
